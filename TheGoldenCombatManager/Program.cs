@@ -103,11 +103,11 @@ namespace TheGoldenCombatManager
         }
         static void CreateCombat()
         {
-            List<Fighter> Fighters = [];
+            List<Fighter> turnOrder = [];
             bool loop = true;
             while (loop)
             {
-                Fighters.AddRange(AddToTurnOrder());
+                AddToTurnOrder(ref turnOrder);
                 Console.WriteLine("Would you like to Add more 'Yes' or No");
                 string choice = Console.ReadLine()!;
                 if (choice != "Yes")
@@ -116,42 +116,43 @@ namespace TheGoldenCombatManager
                 }
             }
             Console.WriteLine("");
-            foreach (Fighter f in Fighters)
+            foreach (Fighter fighter in turnOrder)
             {
-                Console.WriteLine("{0}: {1}", f.Name, f.Health);
+                Console.WriteLine("{0}: {1}", fighter.Name, fighter.Health);
             }
         }
-        static List<Fighter> AddToTurnOrder()
+
+        /// <summary>
+        /// Takes a [name] and [amount] from the user.<br></br>
+        /// If [name] does not appear in `Combatants`, does nothing.<br></br>
+        /// Else, Adds [amount] Fighters with name == [name] to the given turn order.<br></br>
+        /// Each Fighter is given a unique tempID.
+        /// </summary>
+        /// <param name="turnOrder">The turn order to add to.</param>
+        static void AddToTurnOrder(ref List<Fighter> turnOrder)
         {
-            List<Fighter> NewFighters = [];
-            Console.WriteLine("what is the name of the Comabatant you would like to add");
+            Console.WriteLine("What is the name of the Combatant you would like to add?");
+
             string name = Console.ReadLine()!;
-            foreach (Combatant combatant in Combatants)
+
+            // Get first combatant with matching name. If none match, return early.
+            Combatant? combatant = Combatants.Find(combatant => combatant.Name == name);
+            if (combatant == null) return;
+
+            int amount;
+            while (true)
             {
-                if (combatant.Name == name)
-                {
-                    int amount = 0;
-                    while (amount == 0)
-                    {
-                        Console.WriteLine("How many of this Combatant would you like to add?");
-                        try
-                        {
-                            amount = Convert.ToInt32(Console.ReadLine())!;
-                        }
-                        catch
-                        {
-                            Console.WriteLine("Invalid input please only input an integer");
-                        }
-                    }
-                    for (int i = 0; i < amount; i++)
-                    {
-                        int tempID = NewFighters.Count + 1;
-                        Fighter f = new(combatant.ID, combatant.Name, combatant.Type, combatant.MaxHealth, tempID);
-                        NewFighters.Add(f);
-                    }
-                }
+                Console.WriteLine("How many of this Combatant would you like to add?");
+                if (int.TryParse(Console.ReadLine()!, out amount)) break;
+                Console.WriteLine("Invalid input please only input an integer");
             }
-            return NewFighters;
+
+            for (int i = 0; i < amount; i++)
+            {
+                int tempID = turnOrder.Count + 1;
+                Fighter fighter = new(combatant.ID, combatant.Name, combatant.Type, combatant.MaxHealth, tempID);
+                turnOrder.Add(fighter);
+            }
         }
     }
 }
