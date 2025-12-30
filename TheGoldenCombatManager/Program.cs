@@ -3,16 +3,16 @@ using System.Text.Json;
 
 namespace TheGoldenCombatManager
 {
-    class Combatant(int id, string name, string type, int MaxHealth)
+    class Combatant(int id, string name, string type, int maxHealth)
     {
         public int ID { get; set; } = id;
         public string Name { get; set; } = name;
         public string Type { get; set; } = type;
-        public int MaxHealth { get; set; } = MaxHealth;
+        public int MaxHealth { get; set; } = maxHealth;
     }
-    class Figther(int id, string name, string type, int health, int TempID) : Combatant(id, name, type, health)
+    class Fighter(int id, string name, string type, int health, int tempID) : Combatant(id, name, type, health)
     {
-        public int TempID { get; set; } = TempID;
+        public int TempID { get; set; } = tempID;
         public int Health { get; set; } = health;
     }
 
@@ -103,7 +103,7 @@ namespace TheGoldenCombatManager
         }
         static void CreateCombat()
         {
-            List<Figther> Fighters = [];
+            List<Fighter> Fighters = [];
             bool loop = true;
             while (loop)
             {
@@ -116,14 +116,14 @@ namespace TheGoldenCombatManager
                 }
             }
             Console.WriteLine("");
-            foreach (Figther f in Fighters)
+            foreach (Fighter f in Fighters)
             {
                 Console.WriteLine("{0}: {1}", f.Name, f.Health);
             }
         }
-        static List<Figther> AddToTurnOrder()
+        static List<Fighter> AddToTurnOrder()
         {
-            List<Figther> NewFighters = [];
+            List<Fighter> NewFighters = [];
             Console.WriteLine("what is the name of the Comabatant you would like to add");
             string name = Console.ReadLine()!;
             foreach (Combatant combatant in Combatants)
@@ -146,7 +146,7 @@ namespace TheGoldenCombatManager
                     for (int i = 0; i < amount; i++)
                     {
                         int tempID = NewFighters.Count + 1;
-                        Figther f = new(combatant.ID, combatant.Name, combatant.Type, combatant.MaxHealth, tempID);
+                        Fighter f = new(combatant.ID, combatant.Name, combatant.Type, combatant.MaxHealth, tempID);
                         NewFighters.Add(f);
                     }
                 }
