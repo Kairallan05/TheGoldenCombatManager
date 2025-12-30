@@ -10,10 +10,16 @@ namespace TheGoldenCombatManager
         public string Type { get; set; } = type;
         public int MaxHealth { get; set; } = maxHealth;
     }
-    class Fighter(int id, string name, string type, int health, int tempID) : Combatant(id, name, type, health)
+    class Fighter(Combatant template, int tempID, int initiative)
     {
         public int TempID { get; set; } = tempID;
-        public int Health { get; set; } = health;
+        public Combatant Template { get; set; } = template;
+        public int Health { get; set; } = template.MaxHealth;
+        public int Initiative { get; set; } = initiative;
+    }
+    class Encounter(List<Fighter> turnorder)
+    {
+        public List<Fighter> TurnOrder { get; set; } = turnorder;
     }
 
     internal class Program
@@ -48,7 +54,7 @@ namespace TheGoldenCombatManager
         {
             while (true)
             {
-                Console.WriteLine("\nWould you like to 'Add' a combatant, 'View' Combatants or start a 'Combat'");
+                Console.WriteLine("\nWould you like to 'Add' a combatant, 'View' Combatants, start a 'Combat' or 'Quit'");
                 string? choice = Console.ReadLine()!;
                 switch (choice)
                 {
@@ -59,7 +65,10 @@ namespace TheGoldenCombatManager
                         ViewCombatants();
                         break;
                     case "Combat":
-                        CreateCombat();
+                        Combat();
+                        break;
+                    case "Quit":
+                        Environment.Exit(0);
                         break;
                     default:
                         Console.WriteLine("\nInvalid Choice, Please choose again\n");
@@ -101,6 +110,24 @@ namespace TheGoldenCombatManager
                 Console.WriteLine("Name: {0}\n  Type: {1}\n  HP: {2}", combatant.Name, combatant.Type, combatant.MaxHealth);
             }
         }
+        static void Combat()
+        {
+            Console.WriteLine("'Load' or 'New'");
+            string Choice = Console.ReadLine()!;
+            switch (Choice)
+            {
+                case "Load":
+                    Loadcombat();
+                    break;
+                default:
+                    CreateCombat();
+                    break;
+            }
+        }
+        static void Loadcombat()
+        {
+            // Placeholder for future implementation
+        }
         static void CreateCombat()
         {
             List<Fighter> turnOrder = [];
@@ -115,10 +142,11 @@ namespace TheGoldenCombatManager
                     loop = false;
                 }
             }
+            SortTurnOrder(ref turnOrder);
             Console.WriteLine("");
             foreach (Fighter fighter in turnOrder)
             {
-                Console.WriteLine("{0}: {1}", fighter.Name, fighter.Health);
+                Console.WriteLine("{0}: {1}", fighter.Template.Name, fighter.Initiative);
             }
         }
 
@@ -143,16 +171,31 @@ namespace TheGoldenCombatManager
             while (true)
             {
                 Console.WriteLine("How many of this Combatant would you like to add?");
-                if (int.TryParse(Console.ReadLine()!, out amount)) break;
+                if(int.TryParse(Console.ReadLine()!, out amount)) break;
                 Console.WriteLine("Invalid input please only input an integer");
             }
 
             for (int i = 0; i < amount; i++)
             {
                 int tempID = turnOrder.Count + 1;
-                Fighter fighter = new(combatant.ID, combatant.Name, combatant.Type, combatant.MaxHealth, tempID);
+                Fighter fighter = new(combatant, tempID, GetInitiative());
                 turnOrder.Add(fighter);
             }
+        }
+        static int GetInitiative()
+        {
+            int initiative;
+            while (true)
+            {
+                Console.WriteLine("What is this Fighter's Initiatave?");
+                if (int.TryParse(Console.ReadLine()!, out initiative)) break;
+                Console.WriteLine("Invalid input please only input an integer");
+            }
+            return initiative;
+        }
+        static void SortTurnOrder(ref List<Fighter> turnorder)
+        {
+            turnorder.Sort((a, b) => b.Initiative.CompareTo(a.Initiative));
         }
     }
 }
