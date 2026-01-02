@@ -1,6 +1,6 @@
-﻿using System.Dynamic;
-using System.Text.Json;
-using System.Xml.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 
 namespace TheGoldenCombatManager
 {
@@ -11,6 +11,7 @@ namespace TheGoldenCombatManager
         public string Type { get; set; } = type;
         public int MaxHealth { get; set; } = maxHealth;
     }
+
     class Fighter(Combatant template, int tempID, int initiative)
     {
         public int TempID { get; set; } = tempID;
@@ -18,6 +19,7 @@ namespace TheGoldenCombatManager
         public int Health { get; set; } = template.MaxHealth;
         public int Initiative { get; set; } = initiative;
     }
+
     class Encounter(List<Fighter> turnorder, string name)
     {
         public List<Fighter> TurnOrder { get; set; } = turnorder;
@@ -26,55 +28,30 @@ namespace TheGoldenCombatManager
 
     internal class Program
     {
-        static readonly List<Combatant> Combatants = [];
-        static readonly List<Encounter> encounters = [];
-        static List<Combatant> GetCombatants()
-        {
-            try
-            {
-                string load = File.ReadAllText("Combatants.json");
-                List<Combatant> combatants = JsonSerializer.Deserialize<List<Combatant>>(load)!;
-                return combatants;
-            }
-            catch
-            {
-                List<Combatant> combatants = [];
-                return combatants;
-            }
-        }
-        static List<Encounter> GetEncounters()
-        {
-            try
-            {
-                string load = File.ReadAllText("Encounters.json");
-                List<Encounter> encounters = JsonSerializer.Deserialize<List<Encounter>>(load)!;
-                return encounters;
-            }
-            catch
-            {
-                List<Encounter> encounters = [];
-                return encounters;
-            }
+        const string CombatantsFile = "Combatants.json";
+        const string EncountersFile = "Encounters.json";
 
-        }
+        static List<Combatant> Combatants = [];
+        static List<Encounter> Encounters = [];
 
-        private static JsonSerializerOptions JsonOptions()
-        {
-            return new JsonSerializerOptions { WriteIndented = true };
-        }
+        static readonly Action SaveCombatants = () => SaveManager.ListToJsonFile(in Combatants, CombatantsFile);
+        static readonly Action LoadCombatants = () => SaveManager.JsonFileToList(CombatantsFile, out Combatants);
+
+        static readonly Action SaveEncounters = () => SaveManager.ListToJsonFile(in Encounters, EncountersFile);
+        static readonly Action LoadEncounters = () => SaveManager.JsonFileToList(EncountersFile, out Encounters);
 
         static void Main()
         {
-            Combatants.AddRange(GetCombatants());
-            encounters.AddRange(GetEncounters());
+            LoadCombatants();
+            LoadEncounters();
             Menu();
         }
+
         static void Menu()
         {
             while (true)
             {
-                Console.WriteLine("\nWould you like to 'Add' a combatant, 'View' Combatants, start a 'Combat' or 'Quit'");
-                string? choice = Console.ReadLine()!;
+                string choice = InputManager.AskForString("\nWould you like to 'Add' a combatant, 'View' Combatants, start a 'Combat' or 'Quit'?");
                 switch (choice)
                 {
                     case "Add":
@@ -95,57 +72,52 @@ namespace TheGoldenCombatManager
                 }
             }
         }
+
         static void AddCombatant()
         {
             int id = Combatants.Count;
-            Console.WriteLine("\nInput name of combatant you would like to add");
-            string? Name = Console.ReadLine()!;
-            Console.WriteLine("Input Creature Type");
-            string? Type = Console.ReadLine()!;
-            int Health = 0;
-            while (Health == 0)
-            {
-                Console.WriteLine("Input Creatures total health");
-                try
-                {
-                    Health = Convert.ToInt32(Console.ReadLine())!;
-                }
-                catch
-                {
-                    Console.WriteLine("Invalid input please only input an integer");
-                }
-            }
-            Combatant combatant = new(id, Name, Type, Health);
+
+            string name = InputManager.AskForString("\nInput name of combatant you would like to add");
+            string type = InputManager.AskForString("Input Creature Type");
+            int health = InputManager.AskForInt("Input Creatures total health");
+
+            Combatant combatant = new(id, name, type, health);
             Combatants.Add(combatant);
-            var options = JsonOptions();
-            string json = JsonSerializer.Serialize(Combatants, options);
-            File.WriteAllText("Combatants.json", json);
+
+            SaveCombatants();
         }
+
         static void ViewCombatants()
         {
-            Console.WriteLine("");
+            Console.WriteLine();
             foreach (Combatant combatant in Combatants)
             {
                 Console.WriteLine("Name: {0}\n  Type: {1}\n  HP: {2}", combatant.Name, combatant.Type, combatant.MaxHealth);
             }
         }
+
         static void Combat()
         {
-            Console.WriteLine("'Load' or New");
-            string Choice = Console.ReadLine()!;
-            switch (Choice)
+            string choice = InputManager.AskForString("'Load' or New");
+            switch (choice)
             {
                 case "Load":
-                    Loadcombat();
+                    LoadCombat();
                     break;
                 default:
                     CreateCombat();
                     break;
             }
         }
-        static void Loadcombat()
+
+        static void LoadCombat()
         {
-            string name;
+            if (Encounters.Count == 0)
+            {
+                Console.WriteLine("There are no saved Encounters.");
+                return;
+            }
+
             List<Fighter> turnorder = [];
             while (true)
             {
@@ -168,38 +140,40 @@ namespace TheGoldenCombatManager
                     Console.WriteLine("There isn't a Encounter with that name, try again");
                 }
             }
+
             foreach (Fighter fighter in turnorder)
             {
                 Console.WriteLine("{0}: {1}", fighter.Template.Name, fighter.Initiative);
             }
         }
+
         static void CreateCombat()
         {
             List<Fighter> turnorder = [];
-            bool loop = true;
-            while (loop)
+
+            
+            while (true)
             {
                 AddToTurnOrder(ref turnorder);
-                Console.WriteLine("Would you like to Add more 'Yes' or No");
-                string choice = Console.ReadLine()!;
-                if (choice != "Yes")
-                {
-                    loop = false;
-                }
+                string choice = InputManager.AskForString("Would you like to Add more 'Yes' or No");
+                if (choice != "Yes") break;
             }
+
             SortTurnOrder(ref turnorder);
+
             Console.WriteLine("");
+
             foreach (Fighter fighter in turnorder)
             {
                 Console.WriteLine("{0}: {1}", fighter.Template.Name, fighter.Initiative);
             }
-            Console.WriteLine("Name this Encounter");
-            string name = Console.ReadLine()!;
-            Encounter encounter = new(turnorder,name);
-            encounters.Add(encounter);
-            var options = JsonOptions();
-            string json = JsonSerializer.Serialize(encounters, options);
-            File.WriteAllText("Encounters.json", json);
+
+            string name = InputManager.AskForString("Name this Encounter");
+
+            Encounter encounter = new(turnorder, name);
+            Encounters.Add(encounter);
+
+            SaveEncounters();
         }
 
         /// <summary>
@@ -211,21 +185,13 @@ namespace TheGoldenCombatManager
         /// <param name="turnOrder">The turn order to add to.</param>
         static void AddToTurnOrder(ref List<Fighter> turnOrder)
         {
-            Console.WriteLine("What is the name of the Combatant you would like to add?");
-
-            string name = Console.ReadLine()!;
+            string name = InputManager.AskForString("What is the name of the Combatant you would like to add?");
 
             // Get first combatant with matching name. If none match, return early.
             Combatant? combatant = Combatants.Find(combatant => combatant.Name == name);
             if (combatant == null) return;
 
-            int amount;
-            while (true)
-            {
-                Console.WriteLine("How many of this Combatant would you like to add?");
-                if(int.TryParse(Console.ReadLine()!, out amount)) break;
-                Console.WriteLine("Invalid input please only input an integer");
-            }
+            int amount = InputManager.AskForInt("How many of this Combatant would you like to add?");
 
             for (int i = 0; i < amount; i++)
             {
@@ -234,17 +200,12 @@ namespace TheGoldenCombatManager
                 turnOrder.Add(fighter);
             }
         }
+
         static int GetInitiative()
         {
-            int initiative;
-            while (true)
-            {
-                Console.WriteLine("What is this Fighter's Initiatave?");
-                if (int.TryParse(Console.ReadLine()!, out initiative)) break;
-                Console.WriteLine("Invalid input please only input an integer");
-            }
-            return initiative;
+            return InputManager.AskForInt("What is this Fighter's Initiative?");
         }
+
         static void SortTurnOrder(ref List<Fighter> turnorder)
         {
             turnorder.Sort((a, b) => b.Initiative.CompareTo(a.Initiative));
