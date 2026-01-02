@@ -132,6 +132,11 @@ namespace TheGoldenCombatManager
                 if (encounter != null)
                 {
                     turnorder.AddRange(encounter.TurnOrder);
+                    foreach (Fighter fighter in turnorder)
+                    {
+                        fighter.Initiative = GetInitiative(fighter.Template.Name);
+                    }
+                    SortTurnOrder(ref turnorder);
                     break;
                 }
                 else
@@ -157,8 +162,6 @@ namespace TheGoldenCombatManager
                 string choice = InputManager.AskForString("Would you like to Add more 'Yes' or No");
                 if (choice != "Yes") break;
             }
-
-            SortTurnOrder(ref turnorder);
 
             Console.WriteLine("");
 
@@ -195,14 +198,15 @@ namespace TheGoldenCombatManager
             for (int i = 0; i < amount; i++)
             {
                 int tempID = turnOrder.Count;
-                Fighter fighter = new(combatant, tempID, GetInitiative());
+                Fighter fighter = new(combatant, tempID, 0);
                 turnOrder.Add(fighter);
             }
         }
 
-        static int GetInitiative()
+        static int GetInitiative(string name)
         {
-            return InputManager.AskForInt("What is this Fighter's Initiative?");
+            string Prompt = "What is " + name + "'s Initiative";
+            return InputManager.AskForInt(Prompt);
         }
 
         static void SortTurnOrder(ref List<Fighter> turnorder)
