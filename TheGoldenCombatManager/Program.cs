@@ -122,14 +122,13 @@ namespace TheGoldenCombatManager
             while (true)
             {
                 int tempid = 0;
-                foreach(Encounter e in encounters)
+                foreach(Encounter e in Encounters)
                 {
                     tempid++;
                     Console.WriteLine("{0}:{1}", tempid, e.Name);
                 }
-                Console.WriteLine("Input the name of the Encounter you would like to Load?");
-                name = Console.ReadLine()!;
-                Encounter? encounter = encounters.Find(encounter => encounter.Name == name);
+                string name = InputManager.AskForString("Input the name of the encounter you would like to load");
+                Encounter? encounter = Encounters.Find(encounter => encounter.Name == name);
                 if (encounter != null)
                 {
                     turnorder.AddRange(encounter.TurnOrder);
