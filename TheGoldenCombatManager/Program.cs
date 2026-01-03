@@ -1,20 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
+using System.Globalization;
 using System.Text;
 
 namespace TheGoldenCombatManager
 {
-    class Combatant(int id, string name, string type, int maxHealth, int ac, List<int> speed, List<int> abilityscores, int proficiency)
+    class Combatant(int id, string name, string type, int maxHealth, int ac, List<int> speed, List<int> abilityscores, int proficiency, List<Actions> actions)
     {
         public int ID { get; set; } = id;
         public string Name { get; set; } = name;
         public string Type { get; set; } = type;
         public int MaxHealth { get; set; } = maxHealth;
         public int AC { get; set; } = ac;
-        public List<int> speed { get; set; } = speed;
-        public List<int> abilityscores { get; set; } = abilityscores;
-        public int proficiency { get; set; } = proficiency;
+        public List<int> Speed { get; set; } = speed;
+        public List<int> Abilityscores { get; set; } = abilityscores;
+        public int Proficiency { get; set; } = proficiency;
+        public List<Actions> Actions { get; set; } = actions;
 
+    }
+    class Actions(string name, int range, int dietype, int dieamount, int dmgmod, int tohitmod)
+    {
+        public string Name { get; set; } = name;
+        public int Range { get; set; } = range;
+        public int Dietype { get; set; } = dietype;
+        public int Dieamount { get; set; } = dieamount;
+        public int Dmgmod { get; set; } = dmgmod;
+        public int Tohitmod { get; set; } = tohitmod;
     }
     class Fighter(Combatant template, int tempID, int initiative)
     {
@@ -23,10 +35,11 @@ namespace TheGoldenCombatManager
         public int Health { get; set; } = template.MaxHealth;
         public int Initiative { get; set; } = initiative;
     }
-    class Encounter(List<Fighter> turnorder, string name)
+    class Encounter(List<Fighter> turnorder, string name, int id)
     {
         public List<Fighter> TurnOrder { get; set; } = turnorder;
         public string Name { get; set; } = name;
+        public int ID { get; set; } = id;
     }
 
     internal class Program
@@ -54,19 +67,22 @@ namespace TheGoldenCombatManager
         {
             while (true)
             {
-                string choice = InputManager.AskForString("\nWould you like to 'Add' a combatant, 'View' Combatants, start a 'Combat' or 'Quit'?");
+                int choice = InputManager.AskForInt("\n1 : Add combatant\n2 : View combatants\n3 : Add action to combatant\n4 : start a Combat\n5 : Quit");
                 switch (choice)
                 {
-                    case "Add":
+                    case 1:
                         AddCombatant();
                         break;
-                    case "View":
+                    case 2:
                         ViewCombatants();
                         break;
-                    case "Combat":
+                    case 3:
+                        AddAction();
+                        break;
+                    case 4:
                         Combat();
                         break;
-                    case "Quit":
+                    case 5:
                         Environment.Exit(0);
                         break;
                     default:
@@ -78,9 +94,10 @@ namespace TheGoldenCombatManager
 
         static void AddCombatant()
         {
-            int id = Combatants.Count;
+            int id = Combatants.Count + 1;
             List<int> speed = [];
             List<int> abilityscores = [];
+            List<Actions> actions = [];
 
             string name = InputManager.AskForString("\nInput name of combatant you would like to add");
             string type = InputManager.AskForString("Input Creature Type");
@@ -107,9 +124,42 @@ namespace TheGoldenCombatManager
             int proficiency = InputManager.AskForInt("Input the combatant's proficiency bonus");
 
 
-            Combatant combatant = new(id, name, type, health,ac,speed,abilityscores,proficiency);
+            Combatant combatant = new(id, name, type, health,ac,speed,abilityscores,proficiency,actions);
             Combatants.Add(combatant);
 
+            SaveCombatants();
+        }
+
+        static void AddAction()
+        {
+            while (true)
+            {
+                Console.WriteLine("");
+                string name = InputManager.AskForString("Input the name of the combatant you would like to add an action to");
+                Combatant? c = Combatants.Find(c => c.Name == name);
+                if (c != null)
+                {
+                    string Name = InputManager.AskForString("\nInput the name of the action you would like to add");
+                    int range = InputManager.AskForInt("Input the action's range in ft");
+                    int dietype = InputManager.AskForInt("Input the action's die type");
+                    int dieamount = InputManager.AskForInt("Input the action's die amount");
+                    int dmgmod = 9999;
+                    while(dmgmod == 9999)
+                    {
+                        string actiontype = InputManager.AskForString("which stat does this action use from 'STR' 'DEX' 'CON' 'INT' 'WIS' 'CHA'");
+                        dmgmod = getdmgmod(actiontype,c);
+                    }
+                    int tohitmod = dmgmod + c.Proficiency;
+
+                    Actions action = new(Name, range, dietype, dieamount, dmgmod, tohitmod);
+                    c.Actions.Add(action);
+                    break;
+                }
+                else
+                {
+                    Console.WriteLine("There isn't a combatant with that name, try again");
+                }
+            }
             SaveCombatants();
         }
 
@@ -118,25 +168,31 @@ namespace TheGoldenCombatManager
             Console.WriteLine("");
             foreach (Combatant combatant in Combatants)
             {
-                Console.WriteLine("{0}:{1}", combatant.ID + 1, combatant.Name);
+                Console.WriteLine("{0} : {1}", combatant.ID, combatant.Name);
             }
             Console.WriteLine("");
 
-            string name = InputManager.AskForString("Input the name of the combatant you would like to load");
-            Combatant? combatant1 = Combatants.Find(combatant1 => combatant1.Name == name);
+            int id = InputManager.AskForInt("");
+            Combatant? combatant1 = Combatants.Find(combatant1 => combatant1.ID == id);
             if (combatant1 != null)
             {
                 Console.WriteLine("");
                 Console.WriteLine("----------------------------------------------------------------------------");
                 Console.WriteLine("{0} ({1})    AC: {2}", combatant1.Name, combatant1.Type, combatant1.AC);
-                Console.WriteLine("HP: {0}    Speed: {1}Ft, Swim: {2}Ft, Fly: {3}Ft    Proficiency Bonus: +{4}", combatant1.MaxHealth, combatant1.speed[0], combatant1.speed[1], combatant1.speed[2], combatant1.proficiency);
-                Console.WriteLine("STR: {0}   DEX: {1}   CON: {2}   INT: {3}   WIS: {4}   CHA: {5}", combatant1.abilityscores[0], combatant1.abilityscores[1], combatant1.abilityscores[2], combatant1.abilityscores[3], combatant1.abilityscores[4], combatant1.abilityscores[5]);
+                Console.WriteLine("HP: {0}    Speed: {1}Ft, Swim: {2}Ft, Fly: {3}Ft    Proficiency Bonus: +{4}", combatant1.MaxHealth, combatant1.Speed[0], combatant1.Speed[1], combatant1.Speed[2], combatant1.Proficiency);
+                Console.WriteLine("STR: {0}   DEX: {1}   CON: {2}   INT: {3}   WIS: {4}   CHA: {5}", combatant1.Abilityscores[0], combatant1.Abilityscores[1], combatant1.Abilityscores[2], combatant1.Abilityscores[3], combatant1.Abilityscores[4], combatant1.Abilityscores[5]);
+                Console.WriteLine("----------------------------------------------------------------------------");
+                Console.WriteLine("Actions:");
+                foreach(Actions action in combatant1.Actions)
+                {
+                    Console.WriteLine("  {0}:   Range: {1}Ft   Tohit: 1d20+{2}   Damage: {3}d{4}+{5}", action.Name, action.Range, action.Tohitmod, action.Dieamount, action.Dietype, action.Dmgmod);
+                }
                 Console.WriteLine("----------------------------------------------------------------------------");
             }
             else
             {
                 Console.WriteLine("");
-                Console.WriteLine("There isn't a combatant with that name");
+                Console.WriteLine("There isn't a combatant with that ID");
             }
         }
 
@@ -165,14 +221,12 @@ namespace TheGoldenCombatManager
             List<Fighter> turnorder = [];
             while (true)
             {
-                int tempid = 0;
                 foreach(Encounter e in Encounters)
                 {
-                    tempid++;
-                    Console.WriteLine("{0}:{1}", tempid, e.Name);
+                    Console.WriteLine("{0} : {1}", e.ID, e.Name);
                 }
-                string name = InputManager.AskForString("Input the name of the encounter you would like to load");
-                Encounter? encounter = Encounters.Find(encounter => encounter.Name == name);
+                int id = InputManager.AskForInt("Input the ID of the encounter you would like to load");
+                Encounter? encounter = Encounters.Find(encounter => encounter.ID == id);
                 if (encounter != null)
                 {
                     turnorder.AddRange(encounter.TurnOrder);
@@ -185,7 +239,7 @@ namespace TheGoldenCombatManager
                 }
                 else
                 {
-                    Console.WriteLine("There isn't a Encounter with that name, try again");
+                    Console.WriteLine("There isn't an Encounter with that ID, try again");
                 }
             }
 
@@ -199,7 +253,7 @@ namespace TheGoldenCombatManager
         {
             List<Fighter> turnorder = [];
 
-            
+            int id = Encounters.Count + 1;
             while (true)
             {
                 AddToTurnOrder(ref turnorder);
@@ -216,7 +270,7 @@ namespace TheGoldenCombatManager
 
             string name = InputManager.AskForString("Name this Encounter");
 
-            Encounter encounter = new(turnorder, name);
+            Encounter encounter = new(turnorder, name, id);
             Encounters.Add(encounter);
 
             SaveEncounters();
@@ -256,6 +310,33 @@ namespace TheGoldenCombatManager
         static void SortTurnOrder(ref List<Fighter> turnorder)
         {
             turnorder.Sort((a, b) => b.Initiative.CompareTo(a.Initiative));
+        }
+
+        static int Getmod(float AbilityScore)
+        {
+            float temp = (AbilityScore - 10) / 2;
+            int Mod = (int)Math.Floor(temp);
+            return Mod;
+        }
+        static int getdmgmod(string Stat, Combatant c)
+        {
+            switch (Stat)
+            {
+                case "STR":
+                    return Getmod(c.Abilityscores[0]);
+                case "DEX":
+                    return Getmod(c.Abilityscores[1]);
+                case "CON":
+                    return Getmod(c.Abilityscores[2]);
+                case "INT":
+                    return Getmod(c.Abilityscores[3]);
+                case "WIS":
+                    return Getmod(c.Abilityscores[4]);
+                case "CHA":
+                    return Getmod(c.Abilityscores[5]);
+                default:
+                    return 9999;
+            }
         }
     }
 }
