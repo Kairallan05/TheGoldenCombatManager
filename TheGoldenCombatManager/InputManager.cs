@@ -12,6 +12,23 @@
             return Console.ReadLine()!;
         }
 
+        /// <summary>Prompts the user for a string response.</summary>
+        /// <param name="prompt">The prompt displayed to the user.</param>
+        /// <returns>The user's response.</returns>
+        public static bool AskForBool(string prompt)
+        {
+            Console.WriteLine(prompt);
+            string input = Console.ReadLine()!;
+            if(input == "Yes")
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         /// <summary>Prompts the user for an integer response until a valid response is received.</summary>
         /// <param name="prompt">The prompt displayed to the user.</param>
         /// <returns>The user's response.</returns>

@@ -2,13 +2,17 @@
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Globalization;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
+using System.Xml.Linq;
+using static System.Collections.Specialized.BitVector32;
 
 namespace TheGoldenCombatManager
 {
-    class Combatant(int id, string name, string type, int maxHealth, int ac, List<int> speed, List<int> abilityscores, int proficiency, List<Actions> actions)
+    class Combatant(int id, bool player, string name, string type, int maxHealth, int ac, List<int> speed, List<int> abilityscores, int proficiency, List<Actions> actions)
     {
         public int ID { get; set; } = id;
+        public bool Player { get; set; } = player;
         public string Name { get; set; } = name;
         public string Type { get; set; } = type;
         public int MaxHealth { get; set; } = maxHealth;
@@ -80,7 +84,7 @@ namespace TheGoldenCombatManager
                         AddAction();
                         break;
                     case 4:
-                        Combat();
+                        Combatmenu();
                         break;
                     case 5:
                         Environment.Exit(0);
@@ -99,33 +103,58 @@ namespace TheGoldenCombatManager
             List<int> abilityscores = [];
             List<Actions> actions = [];
 
-            string name = InputManager.AskForString("\nInput name of combatant you would like to add");
-            string type = InputManager.AskForString("Input Creature Type");
-            int health = InputManager.AskForInt("Input the combatant's total health");
-            int ac = InputManager.AskForInt("Input the combatant's AC");
-            int wspeed = InputManager.AskForInt("Input the combatant's walkspeed");
-            speed.Add(wspeed);
-            int sspeed = InputManager.AskForInt("Input the combatant's swimspeed");
-            speed.Add(sspeed);
-            int fspeed = InputManager.AskForInt("Input the combatant's flyspeed");
-            speed.Add(fspeed);
-            int str = InputManager.AskForInt("Input the combatant's strength score");
-            abilityscores.Add(str);
-            int dex = InputManager.AskForInt("Input the combatant's dexterity score");
-            abilityscores.Add(dex);
-            int con = InputManager.AskForInt("Input the combatant's constitution score");
-            abilityscores.Add(con);
-            int Int = InputManager.AskForInt("Input the combatant's intelligence score");
-            abilityscores.Add(Int);
-            int wis = InputManager.AskForInt("Input the combatant's wisdom score");
-            abilityscores.Add(wis);
-            int cha = InputManager.AskForInt("Input the combatant's charisma score");
-            abilityscores.Add(cha);
-            int proficiency = InputManager.AskForInt("Input the combatant's proficiency bonus");
-
-
-            Combatant combatant = new(id, name, type, health,ac,speed,abilityscores,proficiency,actions);
-            Combatants.Add(combatant);
+            bool player = InputManager.AskForBool("\nInput 'Yes' if this combatant is a player, press Enter if not");
+            string name = InputManager.AskForString("Input name of combatant you would like to add");
+            if (player != true)
+            {
+                string type = InputManager.AskForString("Input Creature Type");
+                int health = InputManager.AskForInt("Input the combatant's total health");
+                int ac = InputManager.AskForInt("Input the combatant's AC");
+                int wspeed = InputManager.AskForInt("Input the combatant's walkspeed");
+                speed.Add(wspeed);
+                int sspeed = InputManager.AskForInt("Input the combatant's swimspeed");
+                speed.Add(sspeed);
+                int fspeed = InputManager.AskForInt("Input the combatant's flyspeed");
+                speed.Add(fspeed);
+                int str = InputManager.AskForInt("Input the combatant's strength score");
+                abilityscores.Add(str);
+                int dex = InputManager.AskForInt("Input the combatant's dexterity score");
+                abilityscores.Add(dex);
+                int con = InputManager.AskForInt("Input the combatant's constitution score");
+                abilityscores.Add(con);
+                int Int = InputManager.AskForInt("Input the combatant's intelligence score");
+                abilityscores.Add(Int);
+                int wis = InputManager.AskForInt("Input the combatant's wisdom score");
+                abilityscores.Add(wis);
+                int cha = InputManager.AskForInt("Input the combatant's charisma score");
+                abilityscores.Add(cha);
+                int proficiency = InputManager.AskForInt("Input the combatant's proficiency bonus");
+                Combatant combatant = new(id, player, name, type, health, ac, speed, abilityscores, proficiency, actions);
+                Combatants.Add(combatant);
+            }
+            else
+            {
+                int wspeed = 30;
+                speed.Add(wspeed);
+                int sspeed = 15;
+                speed.Add(sspeed);
+                int fspeed = 0;
+                speed.Add(fspeed);
+                int str = 10;
+                abilityscores.Add(str);
+                int dex = 10;
+                abilityscores.Add(dex);
+                int con = 10;
+                abilityscores.Add(con);
+                int Int = 10;
+                abilityscores.Add(Int);
+                int wis = 10;
+                abilityscores.Add(wis);
+                int cha = 10;
+                abilityscores.Add(cha);
+                Combatant combatant = new(id, player, name, "Player", 0, 0, speed, abilityscores, 0, actions);
+                Combatants.Add(combatant);
+            }
 
             SaveCombatants();
         }
@@ -147,7 +176,7 @@ namespace TheGoldenCombatManager
                     while(dmgmod == 9999)
                     {
                         string actiontype = InputManager.AskForString("which stat does this action use from 'STR' 'DEX' 'CON' 'INT' 'WIS' 'CHA'");
-                        dmgmod = getdmgmod(actiontype,c);
+                        dmgmod = Getdmgmod(actiontype,c);
                     }
                     int tohitmod = dmgmod + c.Proficiency;
 
@@ -177,7 +206,7 @@ namespace TheGoldenCombatManager
             if (combatant1 != null)
             {
                 Console.WriteLine("");
-                Console.WriteLine("----------------------------------------------------------------------------");
+                Console.WriteLine("============================================================================");
                 Console.WriteLine("{0} ({1})    AC: {2}", combatant1.Name, combatant1.Type, combatant1.AC);
                 Console.WriteLine("HP: {0}    Speed: {1}Ft, Swim: {2}Ft, Fly: {3}Ft    Proficiency Bonus: +{4}", combatant1.MaxHealth, combatant1.Speed[0], combatant1.Speed[1], combatant1.Speed[2], combatant1.Proficiency);
                 Console.WriteLine("STR: {0}   DEX: {1}   CON: {2}   INT: {3}   WIS: {4}   CHA: {5}", combatant1.Abilityscores[0], combatant1.Abilityscores[1], combatant1.Abilityscores[2], combatant1.Abilityscores[3], combatant1.Abilityscores[4], combatant1.Abilityscores[5]);
@@ -187,7 +216,7 @@ namespace TheGoldenCombatManager
                 {
                     Console.WriteLine("  {0}:   Range: {1}Ft   Tohit: 1d20+{2}   Damage: {3}d{4}+{5}", action.Name, action.Range, action.Tohitmod, action.Dieamount, action.Dietype, action.Dmgmod);
                 }
-                Console.WriteLine("----------------------------------------------------------------------------");
+                Console.WriteLine("============================================================================");
             }
             else
             {
@@ -196,8 +225,9 @@ namespace TheGoldenCombatManager
             }
         }
 
-        static void Combat()
+        static void Combatmenu()
         {
+            Console.WriteLine("");
             string choice = InputManager.AskForString("'Load' or New");
             switch (choice)
             {
@@ -209,11 +239,69 @@ namespace TheGoldenCombatManager
                     break;
             }
         }
+        static void Combat(List<Fighter> turnorder)
+        {
+            Console.WriteLine("");
+            int turnsinround  = turnorder.Count;
+            int turncounter = 0;
+            int roundcounter = 1;
+            while (true)
+            {
+                Fighter f = turnorder[turncounter];
+                Console.WriteLine("============================================================================");
+                Console.WriteLine("COMBAT - ROUND {0}| {1}'s Turn", roundcounter, f.Template.Name);
+                Console.WriteLine("============================================================================");
+                if (f.Template.Player == true)
+                {
+                    Console.WriteLine("\n============================================================================");
+                    Console.WriteLine("ENEMIES:\n");
+                    foreach (Fighter fighter in turnorder.Where(fighter => fighter.Template.Player == false))
+                    {
+                        Console.WriteLine("{0}: {1}:  AC: {2}  HP: {3}/{4}", fighter.TempID, fighter.Template.Name, fighter.Template.AC, fighter.Health, fighter.Template.MaxHealth);
+                    }
+                    Console.WriteLine("============================================================================");
+                }
+                else
+                {
+                    Console.WriteLine("\n============================================================================");
+                    Console.WriteLine("HP: {0}/{1}    AC: {2}", f.Health, f.Template.MaxHealth, f.Template.AC);
+                    Console.WriteLine("Speed: {0}Ft, Swim: {1}Ft, Fly: {2}Ft",f.Template.Speed[0], f.Template.Speed[1], f.Template.Speed[2]);
+                    Console.WriteLine("STR: {0}   DEX: {1}   CON: {2}   INT: {3}   WIS: {4}   CHA: {5}", f.Template.Abilityscores[0], f.Template.Abilityscores[1], f.Template.Abilityscores[2], f.Template.Abilityscores[3], f.Template.Abilityscores[4], f.Template.Abilityscores[5]);
+                    Console.WriteLine("----------------------------------------------------------------------------");
+                    Console.WriteLine("Actions:");
+                    foreach (Actions action in f.Template.Actions)
+                    {
+                        Console.WriteLine("  {0}:   Range: {1}Ft   Tohit: 1d20+{2}   Damage: {3}d{4}+{5}", action.Name, action.Range, action.Tohitmod, action.Dieamount, action.Dietype, action.Dmgmod);
+                    }
+                    Console.WriteLine("============================================================================\n");
+                    while (true)
+                    {
+                        string attack = InputManager.AskForString("Select the name of the action you would like to use");
+                        Actions? Action = f.Template.Actions.Find(Action => Action.Name == attack);
+                        if (Action != null)
+                        {
+                            Console.WriteLine("{0} Used {1}\n", f.Template.Name, attack);
+                            Roll(Action);
+                            break;
+                        }
+                    }
+                    Console.WriteLine("============================================================================\n");
+                }
+                Console.ReadKey();
+                turncounter++;
+                if (turncounter >= turnorder.Count)
+                {
+                    roundcounter++;
+                    turncounter = 0;
+                }
+            }
+        }
 
         static void LoadCombat()
         {
             if (Encounters.Count == 0)
             {
+                Console.WriteLine("");
                 Console.WriteLine("There are no saved Encounters.");
                 return;
             }
@@ -221,11 +309,13 @@ namespace TheGoldenCombatManager
             List<Fighter> turnorder = [];
             while (true)
             {
-                foreach(Encounter e in Encounters)
+                Console.WriteLine("");
+                foreach (Encounter e in Encounters)
                 {
                     Console.WriteLine("{0} : {1}", e.ID, e.Name);
                 }
-                int id = InputManager.AskForInt("Input the ID of the encounter you would like to load");
+                Console.WriteLine("");
+                int id = InputManager.AskForInt("Input the ID of the encounter you would like to Run");
                 Encounter? encounter = Encounters.Find(encounter => encounter.ID == id);
                 if (encounter != null)
                 {
@@ -242,11 +332,7 @@ namespace TheGoldenCombatManager
                     Console.WriteLine("There isn't an Encounter with that ID, try again");
                 }
             }
-
-            foreach (Fighter fighter in turnorder)
-            {
-                Console.WriteLine("{0}: {1}", fighter.Template.Name, fighter.Health);
-            }
+            Combat(turnorder);
         }
 
         static void CreateCombat()
@@ -265,9 +351,9 @@ namespace TheGoldenCombatManager
 
             foreach (Fighter fighter in turnorder)
             {
-                Console.WriteLine("{0}: {1}", fighter.Template.Name, fighter.Health);
+                Console.WriteLine("{0}", fighter.Template.Name);
             }
-
+            Console.WriteLine("");
             string name = InputManager.AskForString("Name this Encounter");
 
             Encounter encounter = new(turnorder, name, id);
@@ -318,7 +404,7 @@ namespace TheGoldenCombatManager
             int Mod = (int)Math.Floor(temp);
             return Mod;
         }
-        static int getdmgmod(string Stat, Combatant c)
+        static int Getdmgmod(string Stat, Combatant c)
         {
             switch (Stat)
             {
@@ -337,6 +423,23 @@ namespace TheGoldenCombatManager
                 default:
                     return 9999;
             }
+        }
+        static void Roll(Actions action)
+        {
+            Random rnd = new();
+            int tohit = rnd.Next(1,21);
+            Console.WriteLine("Attack roll: {0} + {1} = {2}\n", tohit, action.Tohitmod, tohit + action.Tohitmod);
+            Console.Write("Damage roll: ");
+            int loop = 0;
+            int totaldmg = 0;
+            while(loop < action.Dieamount)
+            {
+                int dmg = rnd.Next(1,action.Dietype + 1);
+                totaldmg += dmg;
+                Console.Write("{0} + ",dmg);
+                loop++;
+            }
+            Console.WriteLine("{0} = {1}", action.Dmgmod, totaldmg + action.Dmgmod);
         }
     }
 }
