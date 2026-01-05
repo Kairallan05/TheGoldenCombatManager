@@ -245,21 +245,48 @@ namespace TheGoldenCombatManager
             int turnsinround  = turnorder.Count;
             int turncounter = 0;
             int roundcounter = 1;
+            List<Fighter> targets = [];
             while (true)
             {
+                targets.Clear();
                 Fighter f = turnorder[turncounter];
                 Console.WriteLine("============================================================================");
                 Console.WriteLine("COMBAT - ROUND {0}| {1}'s Turn", roundcounter, f.Template.Name);
                 Console.WriteLine("============================================================================");
                 if (f.Template.Player == true)
                 {
+                    bool dead = InputManager.AskForBool("Is this player dead? 'Yes' or No)");
+                    if (dead)
+                    {
+                        turnorder.Remove(f);
+                        continue;
+                    }
                     Console.WriteLine("\n============================================================================");
                     Console.WriteLine("ENEMIES:\n");
                     foreach (Fighter fighter in turnorder.Where(fighter => fighter.Template.Player == false))
                     {
                         Console.WriteLine("{0}: {1}:  AC: {2}  HP: {3}/{4}", fighter.TempID, fighter.Template.Name, fighter.Template.AC, fighter.Health, fighter.Template.MaxHealth);
+                        targets.Add(fighter);
                     }
                     Console.WriteLine("============================================================================");
+                    while (true)
+                    {
+                        int target = InputManager.AskForInt("Select the ID of the target");
+                        Fighter? targ = targets.Find(targ => targ.TempID == target);
+                        if (targ != null)
+                        {
+                            int dmg = InputManager.AskForInt("how much damage has this target taken?");
+                            Console.Write("Health: {0} ->", targ.Health);
+                            targ.Health -= dmg;
+                            Console.WriteLine(" {0}", targ.Health);
+                            break;
+                        }
+                        else
+                        {
+                            Console.WriteLine("There isn't a target with that ID, try again");
+                        }
+                    }
+
                 }
                 else
                 {
