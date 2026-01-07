@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Globalization;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
 using System.Xml.Linq;
@@ -32,12 +33,13 @@ namespace TheGoldenCombatManager
         public int Dmgmod { get; set; } = dmgmod;
         public int Tohitmod { get; set; } = tohitmod;
     }
-    class Fighter(Combatant template, int tempID, int initiative)
+    class Fighter(Combatant template, int tempID, int initiative, bool dead)
     {
         public int TempID { get; set; } = tempID;
         public Combatant Template { get; set; } = template;
         public int Health { get; set; } = template.MaxHealth;
         public int Initiative { get; set; } = initiative;
+        public bool Dead { get; set; } = dead;
     }
     class Encounter(List<Fighter> turnorder, string name, int id)
     {
@@ -245,32 +247,50 @@ namespace TheGoldenCombatManager
             int turnsinround  = turnorder.Count;
             int turncounter = 0;
             int roundcounter = 1;
+
+            void Nextturn()
+            {
+                turncounter++;
+                if (turncounter >= turnorder.Count)
+                {
+                    roundcounter++;
+                    turncounter = 0;
+                }
+            }
             List<Fighter> targets = [];
-            while (true)
+            while (turnorder.Count > 0)
             {
                 targets.Clear();
                 Fighter f = turnorder[turncounter];
+                if (f.Dead)
+                {
+                    Nextturn();
+                    continue;
+                }
                 Console.WriteLine("============================================================================");
                 Console.WriteLine("COMBAT - ROUND {0}| {1}'s Turn", roundcounter, f.Template.Name);
                 Console.WriteLine("============================================================================");
                 if (f.Template.Player == true)
                 {
-                    bool dead = InputManager.AskForBool("Is this player dead? 'Yes' or No)");
+                    bool dead = InputManager.AskForBool("Is this player dead? 'Yes' or No");
                     if (dead)
                     {
-                        turnorder.Remove(f);
+                        f.Dead = true;
+                        Nextturn();
                         continue;
                     }
                     Console.WriteLine("\n============================================================================");
                     Console.WriteLine("ENEMIES:\n");
                     foreach (Fighter fighter in turnorder.Where(fighter => fighter.Template.Player == false))
                     {
+                        if(fighter.Dead) continue;
                         Console.WriteLine("{0}: {1}:  AC: {2}  HP: {3}/{4}", fighter.TempID, fighter.Template.Name, fighter.Template.AC, fighter.Health, fighter.Template.MaxHealth);
                         targets.Add(fighter);
                     }
                     Console.WriteLine("============================================================================");
                     while (true)
                     {
+                        if(targets.Count == 0) break;
                         int target = InputManager.AskForInt("Select the ID of the target");
                         Fighter? targ = targets.Find(targ => targ.TempID == target);
                         if (targ != null)
@@ -278,6 +298,12 @@ namespace TheGoldenCombatManager
                             int dmg = InputManager.AskForInt("how much damage has this target taken?");
                             Console.Write("Health: {0} ->", targ.Health);
                             targ.Health -= dmg;
+                            if (targ.Health <= 0)
+                            {
+                                Console.WriteLine(" {0} killed", targ.Health);
+                                targ.Dead = true;
+                                break;
+                            }
                             Console.WriteLine(" {0}", targ.Health);
                             break;
                         }
@@ -315,12 +341,7 @@ namespace TheGoldenCombatManager
                     Console.WriteLine("============================================================================\n");
                 }
                 Console.ReadKey();
-                turncounter++;
-                if (turncounter >= turnorder.Count)
-                {
-                    roundcounter++;
-                    turncounter = 0;
-                }
+                Nextturn();
             }
         }
 
@@ -409,7 +430,7 @@ namespace TheGoldenCombatManager
             for (int i = 0; i < amount; i++)
             {
                 int tempID = turnOrder.Count;
-                Fighter fighter = new(combatant, tempID, 0);
+                Fighter fighter = new(combatant, tempID, 0, false);
                 turnOrder.Add(fighter);
             }
         }
@@ -433,23 +454,16 @@ namespace TheGoldenCombatManager
         }
         static int Getdmgmod(string Stat, Combatant c)
         {
-            switch (Stat)
+            return Stat switch
             {
-                case "STR":
-                    return Getmod(c.Abilityscores[0]);
-                case "DEX":
-                    return Getmod(c.Abilityscores[1]);
-                case "CON":
-                    return Getmod(c.Abilityscores[2]);
-                case "INT":
-                    return Getmod(c.Abilityscores[3]);
-                case "WIS":
-                    return Getmod(c.Abilityscores[4]);
-                case "CHA":
-                    return Getmod(c.Abilityscores[5]);
-                default:
-                    return 9999;
-            }
+                "STR" => Getmod(c.Abilityscores[0]),
+                "DEX" => Getmod(c.Abilityscores[1]),
+                "CON" => Getmod(c.Abilityscores[2]),
+                "INT" => Getmod(c.Abilityscores[3]),
+                "WIS" => Getmod(c.Abilityscores[4]),
+                "CHA" => Getmod(c.Abilityscores[5]),
+                _ => 9999,
+            };
         }
         static void Roll(Actions action)
         {
