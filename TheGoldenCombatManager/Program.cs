@@ -258,7 +258,7 @@ namespace TheGoldenCombatManager
                 }
             }
             List<Fighter> targets = [];
-            while (turnorder.Count > 0)
+            while (turnorder.Any(f => !f.Dead))
             {
                 targets.Clear();
                 Fighter f = turnorder[turncounter];
